@@ -2,6 +2,15 @@ import os
 import datetime
 import json
 import requests
+import yfinance as yf
+import time
+from characterai import aiocai
+import asyncio
+from rich.console import Console
+from rich.table import Table
+from rich.text import Text
+
+console = Console()
 
 GREEN = "\033[32m"
 BLUE = "\033[36m"
@@ -24,7 +33,7 @@ def menu():
     print(ascii_art)
     print('')
     print(f"{GREEN}[>] {RESET}{BLUE}Created By{RESET}   : ebola-cmd")
-    print(f"{GREEN}[>] {RESET}{BLUE}Version{RESET}      : 1.0")
+    print(f"{GREEN}[>] {RESET}{BLUE}Version{RESET}      : 1.5")
     print('')
     print(f"{YELLOW}[!] -help for commands :{RESET}")
     print('')
@@ -49,6 +58,19 @@ def menu():
 
     if choice == "-gp":
         get_gold_price_in_aed()
+
+    if choice == "-stocks":
+        get_top_stock_data()
+
+    if choice == "-s":
+        symbol = input("Enter stock ticker symbol: ")
+        get_additional_stock_data(symbol)
+    
+    if choice == "-ai":
+        ai()
+
+    if choice == "-tt":
+        tt()
    
     if choice == "-exit":
         print('bye...')
@@ -64,6 +86,10 @@ def help():
     print("-mh               : Mark a habit as done for today.")
     print("-vh               : View progress of your habits.")
     print("-gp               : Get the current 24k gold price in AED.")
+    print("-stocks           : Get the current price, daily high, and low for the top 5 stocks and the S&P 500.")
+    print("-s                : Get the current price, daily high, and low for a specific stock.")
+    print('-ai               : Chatgpt.')
+    print("-tt               : Display the school timetable.")
     print("-help             : Display this help menu with available commands.")
     print("-exit             : Exit the program.")
     print("===================\n")
@@ -198,5 +224,101 @@ def get_gold_price_in_aed():
         print(f"Error in the API request: {e}")
         input('enter to continue...')
         menu()
+
+def get_top_stock_data():
+    top_stocks = ["AAPL", "MSFT", "AMZN", "GOOGL", "TSLA", "^GSPC"]  # S&P 500 is "^GSPC"
+    print("\nTop 5 Stocks and S&P 500 Index Prices:\n")
+    print(f"{'Ticker':<10}{'Current Price':<15}{'High Price':<15}{'Low Price':<15}")
+    print("-" * 50)
+                    
+    for stock in top_stocks:
+        ticker = yf.Ticker(stock)
+        info = ticker.history(period="1d")
+        if not info.empty:
+            current_price = info['Close'].iloc[-1]
+            high_price = info['High'].iloc[-1]
+            low_price = info['Low'].iloc[-1]
+            print(f"{stock:<10}${current_price:<14.2f}${high_price:<14.2f}${low_price:<14.2f}")
+
+        else:
+            print(f"{stock:<10}Data unavailable")
+    
+    input("\nPress Enter to return to the menu...")
+    menu()
+
+def get_additional_stock_data(symbol):
+    ticker = yf.Ticker(symbol)
+    info = ticker.history(period="1d")
+    if not info.empty:
+        current_price = info['Close'].iloc[-1]
+        high_price = info['High'].iloc[-1]
+        low_price = info['Low'].iloc[-1]
+        print("\nCustom Stock Search:\n")
+        print(f"{'Ticker':<10}{'Current Price':<15}{'High Price':<15}{'Low Price':<15}")
+        print("-" * 50)
+        print(f"{symbol.upper():<10}${current_price:<14.2f}${high_price:<14.2f}${low_price:<14.2f}")
+    else:
+        print("\nData unavailable for the specified ticker.")
+    
+    input("\nPress Enter to return to the menu...")
+    menu()
+
+def ai():
+    async def main():
+        char = '7IA8Bw3NsyjruZH-8gLLKqzo3UdZ_2QBvqrCBlS0__U'
+        client = aiocai.Client('4db9b2da990ca50b07a6ecf109621d47b4d2ad49')
+
+        me = await client.get_me()
+
+        async with await client.connect() as chat:
+            new, answer = await chat.new_chat(
+                char, me.id
+            )
+
+            print(f'{answer.name}: {answer.text}')
+                                                                                
+            while True:
+                text = input('YOU: ')
+
+                message = await chat.send_message(
+                    char, new.chat_id, text
+                )
+
+                print(f'{message.name}: {message.text}')
+                                                                                                                                                                
+                if text == "/bye":
+                    menu()
+                    break
+
+    asyncio.run(main())
+
+def tt():
+    timetable = {
+    "Monday": ["CTP", "CTP", "SST", "Math", "CP", "Arabic", "English", "CTP", "STEM", "STEM", "X"],
+    "Tuesday": ["CTP", "CTP", "Electives", "Electives", "English", "Arabic", "Hindi", "Math", "Math", "Science", "SST"],
+    "Wednesday": ["CTP", "PE", "Hindi", "Math", "SST", "Science", "English", "Arabic", "Library", "Science", "Math"],
+    "Thursday": ["CTP", "Math", "M.E", "UAE SST", "Math", "CP", "Hindi", "Science", "English", "Arabic", "Science"],
+    }
+        
+    # Set up the table layout
+    table = Table(title="", header_style="bold cyan")
+                
+    # Adding columns
+    table.add_column("Period", style="bold yellow")
+    for day in timetable.keys():
+        table.add_column(day, style="bold magenta")
+                                            
+    # Adding rows by period (up to 11 periods)
+    for period in range(1, 12):
+        row = [f"Period {period}"]
+        for day, subjects in timetable.items():
+            row.append(subjects[period - 1])
+        table.add_row(*row)
+
+    # Display the timetable with animations
+    console.print(Text("\n=== Weekly School Timetable ===", style="bold green"))
+    console.print(table)
+    input('enter to continue...')
+    menu()
 
 menu()
