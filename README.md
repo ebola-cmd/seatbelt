@@ -8,10 +8,7 @@
 
 ### Features
 
-- **Reminders**: Set reminders and view saved reminders.
-- **Habit Tracker**: Track daily habits, mark them as done, and view your progress.
-- **Command Help**: Access a help menu with descriptions of each command.
-- **Styled Interface**: Enjoy a custom ASCII art design with color-coded messages.
+its up there bruv
 
 ### Installation
 
