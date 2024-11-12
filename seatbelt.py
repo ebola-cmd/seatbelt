@@ -9,8 +9,17 @@ import asyncio
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
+import keyboard
 
+
+WIDTH, HEIGHT = 20, 10
+x, y = 0, 0  # Initial cursor position
+draw_char = "*"  # Character to draw with
+drawing_pad = [[" " for _ in range(WIDTH)] for _ in range(HEIGHT)]
 console = Console()
+virtual_balance = 10000.00
+portfolio = {}
+BIRTHDAY_FILE = "birthdays.json"
 
 GREEN = "\033[32m"
 BLUE = "\033[36m"
@@ -33,7 +42,7 @@ def menu():
     print(ascii_art)
     print('')
     print(f"{GREEN}[>] {RESET}{BLUE}Created By{RESET}   : ebola-cmd")
-    print(f"{GREEN}[>] {RESET}{BLUE}Version{RESET}      : 1.5")
+    print(f"{GREEN}[>] {RESET}{BLUE}Version{RESET}      : 1.7")
     print('')
     print(f"{YELLOW}[!] -help for commands :{RESET}")
     print('')
@@ -71,12 +80,25 @@ def menu():
 
     if choice == "-tt":
         tt()
-   
+
+    if choice == "-ssim":
+        ssim()
+    
+    if choice == "-ab":
+        add_birthday()
+
+    if choice == "-vb":
+        view_birthdays()
+
+    if choice == "-ub":
+        view_upcoming_birthdays()
+        
+    else:
+        input(f"{YELLOW}[!] Invalid command enter to continue... :{RESET}")
+        menu()
+    
     if choice == "-exit":
         print('bye...')
-
-        
-
 
 def help():
     print("\n=== Help Menu ===")
@@ -90,6 +112,10 @@ def help():
     print("-s                : Get the current price, daily high, and low for a specific stock.")
     print('-ai               : Chatgpt.')
     print("-tt               : Display the school timetable.")
+    print("-ssim             : Start Stock Simulator to buy/sell stocks and track portfolio.")
+    print("-ab               : Add a new birthday.")
+    print("-vb               : View all birthdays.")
+    print("-ub               : View upcoming birthdays within the next 30 days.")
     print("-help             : Display this help menu with available commands.")
     print("-exit             : Exit the program.")
     print("===================\n")
@@ -320,5 +346,165 @@ def tt():
     console.print(table)
     input('enter to continue...')
     menu()
+
+def ssim():
+    def get_stock_price(symbol):
+        """Fetch the current stock price for a given symbol."""
+        stock = yf.Ticker(symbol)
+        data = stock.history(period="1d")
+        return data['Close'].iloc[-1]
+
+    def buy_stock(symbol, quantity):
+        """Simulate buying a stock."""
+        global virtual_balance
+        stock_price = get_stock_price(symbol)
+        cost = stock_price * quantity
+
+        if virtual_balance >= cost:
+            virtual_balance -= cost
+            if symbol in portfolio:
+                portfolio[symbol] += quantity
+            else:
+                portfolio[symbol] = quantity
+            print(f"Successfully bought {quantity} shares of {symbol}!")
+            input('enter to continue')
+        else:
+            print("Insufficient funds!")
+            input('enter to continue')
+
+    def sell_stock(symbol, quantity):
+        """Simulate selling a stock."""
+        global virtual_balance
+        if symbol in portfolio and portfolio[symbol] >= quantity:
+            stock_price = get_stock_price(symbol)
+            revenue = stock_price * quantity
+            portfolio[symbol] -= quantity
+            virtual_balance += revenue
+            print(f"Successfully sold {quantity} shares of {symbol}!")
+            input('enter to continue')
+        else:
+            print("You don't own enough of this stock!")
+            input('enter to continue')
+
+    def check_portfolio():
+        """Display the user's current stock portfolio and virtual balance."""
+        print("\nCurrent Portfolio:")
+        for symbol, quantity in portfolio.items():
+            stock_price = get_stock_price(symbol)
+            print(f"{symbol}: {quantity} shares (Current Price: ${stock_price:.2f})")
+            print(f"Virtual Balance: ${virtual_balance:.2f}")
+            input('enter to continue')
+
+    def display_menu():
+        os.system('cls')
+        """Display the custom ASCII menu with color options."""
+        menu_art = """
+
+    ███████╗████████╗ ██████╗  ██████╗██╗  ██╗    ███████╗██╗███╗   ███╗
+    ██╔════╝╚══██╔══╝██╔═══██╗██╔════╝██║ ██╔╝    ██╔════╝██║████╗ ████║
+    ███████╗   ██║   ██║   ██║██║     █████╔╝     ███████╗██║██╔████╔██║
+    ╚════██║   ██║   ██║   ██║██║     ██╔═██╗     ╚════██║██║██║╚██╔╝██║
+    ███████║   ██║   ╚██████╔╝╚██████╗██║  ██╗    ███████║██║██║ ╚═╝ ██║
+    ╚══════╝   ╚═╝    ╚═════╝  ╚═════╝╚═╝  ╚═╝    ╚══════╝╚═╝╚═╝     ╚═╝
+        """
+        print(menu_art)
+
+    def smenu():
+        """Main menu for interacting with the stock simulator."""
+        while True:
+            display_menu()  # Show the ASCII menu
+
+            # Colorful options in the menu
+            print(f"{YELLOW}[!] Select an Option :{RESET}")
+            print('')
+            print(f"{GREEN}[1] {RESET}{BLUE}Buy Stock{RESET}")
+            print(f"{GREEN}[2] {RESET}{BLUE}Sell Stock{RESET}")
+            print(f"{GREEN}[3] {RESET}{BLUE}Check Portfolio{RESET}")
+            print(f"{GREEN}[4] {RESET}{BLUE}Exit{RESET}")
+
+            choice = input(f"{YELLOW}Enter your choice: {RESET}")
+
+            if choice == "1":
+                symbol = input(f"{YELLOW}Enter the stock symbol (e.g., AAPL, TSLA): {RESET}").upper()
+                quantity = int(input(f"{YELLOW}Enter the number of shares to buy: {RESET}"))
+                buy_stock(symbol, quantity)
+            elif choice == "2":
+                symbol = input(f"{YELLOW}Enter the stock symbol to sell: {RESET}").upper()
+                quantity = int(input(f"{YELLOW}Enter the number of shares to sell: {RESET}"))
+                sell_stock(symbol, quantity)
+            elif choice == "3":
+                check_portfolio()
+            elif choice == "4":
+                print(f"{RED}Thank you for using the Stock Simulator!{RESET}")
+                menu()
+                break
+            else:
+                print(f"{RED}Invalid option. Please try again.{RESET}")
+
+    if __name__ == "__main__":
+        smenu()
+
+def load_birthdays():
+    if os.path.exists(BIRTHDAY_FILE):
+        with open(BIRTHDAY_FILE, "r") as file:
+            return json.load(file)
+    else:
+        return {}
+
+def save_birthdays(birthday_data):
+    with open(BIRTHDAY_FILE, "w") as file:
+        json.dump(birthday_data, file, indent=4)
+
+def add_birthday():
+    name = input("Enter name: ")
+    date = input("Enter birthday (YYYY-MM-DD): ")
+    try:
+        # Validate date
+        datetime.datetime.strptime(date, "%Y-%m-%d")
+        birthdays[name] = date
+        save_birthdays(birthdays)  # Save to file
+        print(f"{GREEN}Birthday added for {name}.{RESET}")
+        input('enter to continue...')
+        menu()
+    except ValueError:
+        print(f"{YELLOW}Invalid date format. Please use YYYY-MM-DD.{RESET}")
+        input('enter to continue...')
+        menu()
+
+def view_birthdays():
+    print(f"\n{YELLOW}All Birthdays:{RESET}")
+    if birthdays:
+        for name, date in birthdays.items():
+            print(f"{name}: {date}")
+        input('enter to continue...')
+        menu()
+    else:
+        print(f"{YELLOW}No birthdays available.{RESET}")
+        input('enter to continue...')
+        menu()
+
+def view_upcoming_birthdays():
+    today = datetime.date.today()
+    upcoming_birthdays = []
+
+    for name, date in birthdays.items():
+        birthday_this_year = datetime.date(today.year, int(date[5:7]), int(date[8:]))
+        if today <= birthday_this_year <= (today + datetime.timedelta(days=30)):
+            upcoming_birthdays.append((name, birthday_this_year))
+
+    if upcoming_birthdays:
+        print(f"\n{YELLOW}Upcoming Birthdays in the Next 30 Days:{RESET}")
+        for name, date in sorted(upcoming_birthdays, key=lambda x: x[1]):
+            days_left = (date - today).days
+            print(f"{name}: {date.strftime('%Y-%m-%d')} ({days_left} days left)")
+        input('enter to continue...')
+        menu()
+
+    else:
+        print(f"{YELLOW}No upcoming birthdays in the next 30 days.{RESET}")
+        input('enter to continue...')
+        menu()
+
+birthdays = load_birthdays()
 
 menu()
