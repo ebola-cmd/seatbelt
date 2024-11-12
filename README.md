@@ -1,6 +1,7 @@
 ## Seatbelt
 
-![image](https://github.com/user-attachments/assets/de90bd00-ba15-4fc1-a9a4-f9060cc85ac7)
+![image](https://github.com/user-attachments/assets/b970253a-8078-4341-a6d8-32cdebfba0ff)
+
 
 
 **Seatbelt** is a command-line personal assistant built in Python. It includes features for setting reminders, tracking habits, and managing simple daily tasks in an ASCII-styled interface.
